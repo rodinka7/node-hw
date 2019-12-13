@@ -19,33 +19,43 @@ function init(){
         return;
     }
 
-    if (!sortedDirExists){
-        fs.mkdir(sortedDir, {recursive: true}, err => {
-            if (err){
-                console.log(err);
-                return;
-            }
-            searchFiles(originalDir);
-        });            
-    } else 
-        searchFiles(originalDir);
+    fs.readdir(originalDir, (err, files) => {
+        if (err){
+            console.log(err);
+            return;
+        }
+
+        if (!files.length){
+            removeDir(originalDir, 'dir');
+            return;
+        }
+
+        if (!sortedDirExists){
+            fs.mkdir(sortedDir, {recursive: true}, error => {
+                if (error){
+                    console.log(error);
+                    return;
+                }
+                searchFiles(files, originalDir);
+            });            
+        } else 
+            searchFiles(files, originalDir);
+    })
 }
 
-function searchFiles(dir) {
-    const structure = fs.readdirSync(dir);
-
-    structure.forEach(item => {
+function searchFiles(files, dir) {
+    files.forEach(item => {
         const filePath = path.join(dir, item);
         const stat = fs.statSync(filePath);
         
-        if (stat.isDirectory()){            
-            searchFiles(filePath);
+        if (stat.isDirectory()){
+            searchFiles(fs.readdirSync(filePath), filePath);
         } else {
             moveFile(filePath, item);
         } 
     });
 
-    removeDirectory(dir);
+    removeDir(dir, 'dir');
 }
 
 function moveFile(filePath, item) {
@@ -61,40 +71,28 @@ function moveFile(filePath, item) {
     if (!exists)
         fs.mkdirSync(newDir);
 
-    const data = fs.readFileSync(filePath);     
-        
-    if (data) {
-        try {
-            fs.writeFileSync(path.join(newDir, item), data);
-            removeFile(filePath);                               
-        } catch(error) {
-            console.log(error);
-        }
-    } else 
-        removeFile(filePath);
+    try {
+        fs.copyFileSync(filePath, path.join(newDir, item));
+        removeDir(filePath);
+    } catch(error) {
+        console.log(error);
+    }
 }  
 
-function removeFile(filePath) {    
+function removeDir(dir, entity){
     if (!needRm) return;
     
     try {
-        fs.unlinkSync(filePath);
+        switch(entity) {
+            case 'dir':
+                fs.rmdirSync(dir);
+                break;
+            default:
+                fs.unlinkSync(dir);  
+        }
     } catch(err) {
         console.log(err);        
-    }  
-}
-
-function removeDirectory(dir) {
-    if (!needRm) return;  
-
-    let files = fs.readdirSync(dir);
-    if (files.length) return;
-    
-    try {
-        fs.rmdirSync(dir);
-    } catch(error) {
-        console.log(error);                        
-    }  
+    } 
 }
 
 function findFirstLetter(splited) {
