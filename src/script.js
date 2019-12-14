@@ -8,6 +8,8 @@ let [ dirPath, sortedDirPath, needRm ] = args;
 const originalDir = path.join(dirPath);
 const sortedDir = path.join(sortedDirPath);
 
+const rgx = /^[a-z]+$/;
+
 function init(){    
     const originalDirExists = fs.existsSync(originalDir);
     const sortedDirExists = fs.existsSync(sortedDir);
@@ -26,7 +28,11 @@ function init(){
         }
 
         if (!files.length){
-            removeDir(originalDir, 'dir');
+            try {
+                fs.rmdirSync(originalDir);
+            } catch(error) {
+                console.log(error);
+            }
             return;
         }
 
@@ -36,36 +42,50 @@ function init(){
                     console.log(error);
                     return;
                 }
-                searchFiles(files, originalDir);
+                searchFiles(originalDir);
             });            
         } else 
-            searchFiles(files, originalDir);
+            searchFiles(originalDir);
     })
 }
 
-function searchFiles(files, dir) {
+function searchFiles(dir) {
+    const files = fs.readdirSync(dir);
+
     files.forEach(item => {
         const filePath = path.join(dir, item);
         const stat = fs.statSync(filePath);
         
         if (stat.isDirectory()){
-            searchFiles(fs.readdirSync(filePath), filePath);
+            searchFiles(filePath);
         } else {
             moveFile(filePath, item);
         } 
     });
 
-    removeDir(dir, 'dir');
+    if (needRm) {
+        try {
+            fs.rmdirSync(dir);
+        } catch(error){
+            console.log(error);
+        }
+    }
 }
 
 function moveFile(filePath, item) {
-    const splitedFileName = item.split(''); 
-    let firstLetter = findFirstLetter(splitedFileName);
+    const splitedFileName = item.split('');
+
+    const firstLetter = splitedFileName.reduce((prev, letter) => {
+        letter = letter.toLowerCase();
+        if (!prev && letter.match(rgx)){
+            prev = letter;
+        }
+        return prev;
+    }, '');
     
     if (!firstLetter) return;
     
     const newDir = path.join(sortedDir, firstLetter); 
-    
     const exists = fs.existsSync(newDir);
     
     if (!exists)
@@ -73,36 +93,16 @@ function moveFile(filePath, item) {
 
     try {
         fs.copyFileSync(filePath, path.join(newDir, item));
-        removeDir(filePath);
+        
+        if (needRm) {
+            try {
+                fs.unlinkSync(filePath);
+            } catch(error) {
+                console.log(error);
+            }
+        }
     } catch(error) {
         console.log(error);
-    }
-}  
-
-function removeDir(dir, entity){
-    if (!needRm) return;
-    
-    try {
-        switch(entity) {
-            case 'dir':
-                fs.rmdirSync(dir);
-                break;
-            default:
-                fs.unlinkSync(dir);  
-        }
-    } catch(err) {
-        console.log(err);        
-    } 
-}
-
-function findFirstLetter(splited) {
-    const rgx = /^[a-z]+$/;
-
-    for (let i = 0; i < splited.length; i++) {
-        let letter = splited[i].toLowerCase();
-        if (letter.match(rgx)){
-            return letter;
-        }
     }
 }
 
