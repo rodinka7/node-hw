@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+
 const args = process.argv.splice(2);
 
 let [ dirPath, sortedDirPath, needRm ] = args;
@@ -19,6 +21,5 @@ module.exports = {
     originalDir,
     sortedDir,
     needRm,
-    dirPath,
     rgx
 }

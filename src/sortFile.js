@@ -1,13 +1,22 @@
 const fs = require('fs');
 const path = require('path');
+const { promisify } = require('util');
+const access = promisify(fs.access);
 
 const copyFile = require('./copyFile');
-const { sortedDir, needRm, rgx } = require('./vars');
 const createDir = require('./createDir');
-const removeFile = require('./removeFile');
+const cb = require('./callback');
 
-function showError(err){
-    console.log('done', err);
+const { 
+    sortedDir, 
+    needRm, 
+    rgx 
+} = require('./vars');
+
+function removeFile(filepath){
+    return new Promise((res, rej) =>  
+        fs.unlink(filepath, err => cb('removeFile', err, null, res, rej))
+    );
 }
 
 module.exports = async function sortFile(filePath, item){
@@ -23,17 +32,24 @@ module.exports = async function sortFile(filePath, item){
     
     if (!firstLetter) return;
     
-    const newDir = path.join(sortedDir, firstLetter); 
-    const exists = fs.existsSync(newDir);
+    const newDir = path.join(sortedDir, firstLetter);
+
+    try {
+        await access(newDir);
+    } catch(err){
+        await createDir(newDir);
+    }
     
-    if (!exists)        
-        await createDir(newDir); 
+    try {
+        await copyFile(
+            filePath, 
+            path.join(newDir, item)
+        );
+    } catch(e){
+        console.log(e);
+        return;
+    }
     
-    await copyFile(
-        filePath, 
-        path.join(newDir, item), 
-        showError
-    );    
-    
-    await removeFile(filePath);    
+    if (needRm)
+        await removeFile(filePath);
 }

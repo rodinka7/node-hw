@@ -1,9 +1,13 @@
 const fs = require('fs');
 const path = require('path');
+const { promisify } = require('util');
+const stat = promisify(fs.stat);
 
 const sortFile = require('./sortFile');
 const callback = require('./callback');
 const removeDir = require('./removeDir');
+
+const { needRm } = require('./vars');
 
 function readDirectory(dir){
     return new Promise((res, rej) => 
@@ -13,22 +17,25 @@ function readDirectory(dir){
 
 async function walkThroughFiles(dir) {
     const files = await readDirectory(dir);
-    
-    if (!files.length)
-        await removeDir(dir);
 
     for await (let fileName of files){
         const filePath = path.join(dir, fileName);
-        const stat = fs.statSync(filePath);
         
-        if (stat.isDirectory()){
-            await walkThroughFiles(filePath);
-        } else {
-            await sortFile(filePath, fileName);
-        }
+        await stat(filePath)
+            .then(async stats => {
+                if (stats.isDirectory()){
+                    await walkThroughFiles(filePath);
+                } else {
+                    await sortFile(filePath, fileName);
+                }
+            })
+            .catch(error => {
+                console.log(error);                
+            })
     }
     
-    await removeDir(dir);
+    if (needRm)
+        await removeDir(dir);
 }
 
 module.exports = walkThroughFiles;
