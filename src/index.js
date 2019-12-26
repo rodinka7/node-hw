@@ -1,8 +1,8 @@
 const fs = require('fs');
 const { promisify } = require('util');
 const access = promisify(fs.access);
+const mkdir = promisify(fs.mkdir);
 
-const createDir = require('./createDir');
 const walkThroughFiles = require('./filesWalker');
 
 const { 
@@ -21,7 +21,7 @@ async function run(){
     try {
         await access(sortedDir);
     } catch(err){
-        await createDir(sortedDir);
+        await mkdir(sortedDir);
     }
 
     walkThroughFiles(originalDir);

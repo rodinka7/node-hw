@@ -1,13 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
+
 const stat = promisify(fs.stat);
 const readdir = promisify(fs.readdir);
+const rmdir = promisify(fs.rmdir);
 
 const sortFile = require('./sortFile');
-const callback = require('./callback');
-const removeDir = require('./removeDir');
-
 const { needRm } = require('./vars');
 
 async function walkThroughFiles(dir) {
@@ -30,7 +29,7 @@ async function walkThroughFiles(dir) {
     }
     
     if (needRm)
-        await removeDir(dir);
+        await rmdir(dir);
 }
 
 module.exports = walkThroughFiles;

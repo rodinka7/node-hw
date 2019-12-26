@@ -1,23 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
+
 const access = promisify(fs.access);
+const unlink = promisify(fs.unlink);
+const mkdir = promisify(fs.mkdir);
 
 const copyFile = require('./copyFile');
-const createDir = require('./createDir');
-const cb = require('./callback');
-
 const { 
     sortedDir, 
     needRm, 
     rgx 
 } = require('./vars');
-
-function removeFile(filepath){
-    return new Promise((res, rej) =>  
-        fs.unlink(filepath, err => cb('removeFile', err, null, res, rej))
-    );
-}
 
 module.exports = async function sortFile(filePath, item){
     const splitedFileName = item.split('');
@@ -37,7 +31,7 @@ module.exports = async function sortFile(filePath, item){
     try {
         await access(newDir);
     } catch(err){
-        await createDir(newDir);
+        await mkdir(newDir);
     }
     
     try {
@@ -51,5 +45,5 @@ module.exports = async function sortFile(filePath, item){
     }
     
     if (needRm)
-        await removeFile(filePath);
+        await unlink(filePath);
 }
