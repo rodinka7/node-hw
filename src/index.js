@@ -10,21 +10,21 @@ const {
     sortedDir
 } = require('./vars');
 
-function run(){
-    access(originalDir)
-        .then(() => {
-            access(sortedDir)
-                .then(() => {
-                    walkThroughFiles(originalDir);
-                })
-                .catch(async err => {
-                    await createDir(sortedDir);
-                    walkThroughFiles(originalDir);                  
-                })
-        })
-        .catch(err => {
-            console.log('access', originalDir, err);                    
-        })
+async function run(){
+    try {
+        await access(originalDir);
+    } catch(err){
+        console.log('access', originalDir, err);
+        return;                  
+    }
+
+    try {
+        await access(sortedDir);
+    } catch(err){
+        await createDir(sortedDir);
+    }
+
+    walkThroughFiles(originalDir);
 }
 
 run();
